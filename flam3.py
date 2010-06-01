@@ -4,7 +4,7 @@ import subprocess, os, sys, re
 from xml.dom.minidom import parse, parseString
 from ConfigParser import RawConfigParser as ConfigParser
 
-OPTIONS = ["qs", "ss", "pixel_aspect", "format"]
+OPTIONS = ["qs", "ss", "pixel_aspect", "format", "bpc", "bits", "transparency"]
 DEFAULTS = "default"
 
 class ConsoleDisplay:
@@ -208,19 +208,30 @@ def main():
                     help="quality scale")
   parser.add_option("", "--ss", dest = "ss", type = "int",
                     help="size scale")
+  parser.add_option("", "--transparency", dest = "transparency",
+                    action = "store_const", const = 1,
+                    help="make background transparent if the image format supports it")
   parser.add_option("", "--pixel_aspect", dest = "pixel_aspect", type = "int",
                     metavar = "ASPECT",
                     help="pixel aspect ratio")
-  parser.add_option("", "--format", dest = "format",
+  parser.add_option("", "--bits", dest = "bits", type = "int",
+                    metavar = "BITS",
+                    help="size of internal buffers")
+  parser.add_option("", "--bpc", dest = "bpc", type = "int",
+                    metavar = "BITS",
+                    help="bits per colour channel")
+  parser.add_option("", "--format", dest = "format", type = "choice",
+                    choices = ("png", "jpg", "ppm"),
                     help="output image format")
   parser.add_option("", "--height", dest = "height", type = "int",
                     help="output height")
   parser.add_option("", "--width", dest = "width", type = "int",
                     help="output width")
   parser.add_option("", "--keepratio", dest = "keepratio",
-                    action = "store_true", default = False,
+                    action = "store_true",
                     help="maintains output aspect ratio when providing both width and height")
-  parser.add_option("", "--fix", dest = "fix", metavar = "<width|height>",
+  parser.add_option("", "--fix", dest = "fix", type = "choice",
+                    choices = ("width", "height"), metavar = "<width|height>",
                     help="when resizing fix the image width or height and crop or expand the other")
   parser.add_option("", "--config", dest = "config",
                     help="configuration settings to use as defaults")
@@ -237,6 +248,9 @@ def main():
   if options.format is None:
     options.format = "png"
 
+  if options.height is not None or options.width is not None:
+    options.ss = None
+
   flamefiles = []
   for file in args:
     if not os.path.isfile(file):
@@ -249,7 +263,7 @@ def main():
     pos = 0
     for flame in flamefile.flames:
       pos += 1
-      if len(flamefile.flames) > 0:
+      if len(flamefile.flames) > 1:
         output = "%s%03d.%s" % (flamefile.basename, pos, options.format)
       else:
         output = "%s.%s" % (flamefile.basename, options.format)
