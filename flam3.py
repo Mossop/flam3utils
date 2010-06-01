@@ -1,32 +1,66 @@
 #!/usr/bin/python
 
 import subprocess, os, sys, re
+from datetime import datetime
 from xml.dom.minidom import parse, parseString
 from ConfigParser import RawConfigParser as ConfigParser
 
 OPTIONS = ["qs", "ss", "pixel_aspect", "format", "bpc", "bits", "transparency"]
 DEFAULTS = "default"
 
+def time_delta_str(delta):
+  def delta_part_str(count, noun):
+    if count == 0:
+      return ""
+    if count > 1:
+      return "%d %ss " % (count, noun)
+    return "1 %s " % noun
+
+  result = ""
+  seconds = delta.seconds
+  hours = seconds / 3600
+  seconds -= hours * 3600
+  minutes = seconds / 60
+  seconds -= minutes * 60
+
+  result += delta_part_str(delta.days, "day")
+  result += delta_part_str(hours, "hour")
+  result += delta_part_str(minutes, "minute")
+  result += delta_part_str(seconds, "second")
+
+  return result
+
 class ConsoleDisplay:
   filename = None
+  starttime = None
+  progresswidth = 50
 
   def startDisplay(self, filename):
+    self.starttime = datetime.now()
     self.filename = filename
-    sys.stdout.write("%s: 1/1 [                                                  ]" % filename)
+    sys.stdout.write("%s: 1/1 [" % filename)
+    for i in range(self.progresswidth):
+      sys.stdout.write(" ")
+    sys.stdout.write("]")
 
   def redraw(self, process):
     progress = (100 * (process.strip - 1) / process.strips)
     progress += process.progress / process.strips
     sys.stdout.write("\r%s: %d/%d [" % (self.filename, process.strip, process.strips))
-    count = int(progress / 2)
+    count = int(self.progresswidth * progress / 100)
     for i in range(count):
       sys.stdout.write("#")
-    for i in range(count, 50):
+    for i in range(count, self.progresswidth):
       sys.stdout.write(" ")
-    sys.stdout.write("] %5.1f" % process.progress)
+    sys.stdout.write("] %5.1f%%" % process.progress)
 
   def endDisplay(self):
-    print ""
+    delta = datetime.now() - self.starttime
+    donetime = time_delta_str(delta)
+    sys.stdout.write("\r%s: complete in %s" % (self.filename, donetime))
+    for i in range(len(donetime), self.progresswidth + 1):
+      sys.stdout.write(" ")
+    sys.stdout.write("\n")
 
 class Flam3Renderer:
   options = None
