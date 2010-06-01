@@ -46,12 +46,15 @@ class Flam3Renderer:
     self.strips = 1
     self.display = display
 
-    env = { }
-    for opt in OPTIONS:
-      env[opt] = str(getattr(self.options, opt))
-    env["out"] = outputfile
+    environment = { }
+    for option in OPTIONS:
+      value = getattr(self.options, option)
+      if value is not None:
+        environment[option] = str(value)
+    environment["out"] = outputfile
     args = [self.executable]
-    self.process = subprocess.Popen(args, env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    self.process = subprocess.Popen(args, env=environment, stdin=subprocess.PIPE,
+                                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     return self.process.stdin
 
   def _parseLine(self, line):
@@ -173,19 +176,20 @@ class Flam3File:
 def main():
   from optparse import OptionParser
   parser = OptionParser()
-  parser.add_option("", "--qs", dest = "qs", type = "int", default = 1,
+  parser.add_option("", "--qs", dest = "qs", type = "int",
                     help="quality scale")
-  parser.add_option("", "--ss", dest = "ss", type = "int", default = 1,
+  parser.add_option("", "--ss", dest = "ss", type = "int",
                     help="size scale")
-  parser.add_option("-a", "--aspect", dest = "pixel_aspect", type = "int", default = 1,
+  parser.add_option("-a", "--aspect", dest = "pixel_aspect", type = "int",
                     help="pixel aspect ratio")
-  parser.add_option("-f", "--format", dest = "format", default = "png",
+  parser.add_option("-f", "--format", dest = "format",
                     help="output image format")
   parser.add_option("", "--height", dest = "height", type = "int",
                     help="output height")
   parser.add_option("", "--width", dest = "width", type = "int",
                     help="output width")
-  parser.add_option("-r", "--keepratio", dest = "maintainratio", action = "store_true", default = False,
+  parser.add_option("-r", "--keepratio", dest = "maintainratio",
+                    action = "store_true", default = False,
                     help="maintains output aspect ratio when providing both width and height")
   parser.add_option("", "--fix", dest = "fix", metavar = "<width|height>",
                     help="when resizing fix the image width or height and crop or expand the other")
@@ -193,6 +197,10 @@ def main():
   (options, args) = parser.parse_args()
   if (len(args) == 0):
     parser.print_usage()
+
+  if options.format is None:
+    options.format = "png"
+
   flamefiles = []
   for file in args:
     if not os.path.isfile(file):
@@ -200,6 +208,7 @@ def main():
       parser.print_usage()
       return
     flamefiles.append(Flam3File(file))
+
   for flamefile in flamefiles:
     pos = 0
     for flame in flamefile.flames:
