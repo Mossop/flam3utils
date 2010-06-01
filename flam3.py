@@ -2,8 +2,10 @@
 
 import subprocess, os, sys, re
 from xml.dom.minidom import parse, parseString
+from ConfigParser import RawConfigParser as ConfigParser
 
 OPTIONS = ["qs", "ss", "pixel_aspect", "format"]
+DEFAULTS = "default"
 
 class ConsoleDisplay:
   filename = None
@@ -124,16 +126,16 @@ class Flame:
       scale = float(self.element.getAttribute("scale"))
 
       if options.height is None:
-        newwidth = options.width
+        newwidth = int(options.width)
         ratio = float(newwidth) / width
         newheight = int(height * ratio)
       elif options.width is None:
-        newheight = options.height
+        newheight = int(options.height)
         ratio = float(newheight) / height
         newwidth = int(width * ratio)
       else:
-        newheight = options.height
-        newwidth = options.width
+        newheight = int(options.height)
+        newwidth = int(options.width)
         if options.fix is not None:
           scaleheight = options.fix == "height"
         else:
@@ -141,11 +143,11 @@ class Flame:
 
         if scaleheight:
           ratio = float(newheight) / height
-          if options.maintainratio:
+          if options.keepratio:
             newwidth = int(width * ratio)
         else:
           ratio = float(newwidth) / width
-          if options.maintainratio:
+          if options.keepratio:
             newheight = int(height * ratio)
 
       scale = scale * ratio
@@ -173,6 +175,32 @@ class Flam3File:
     elements = doc.getElementsByTagName("flame")
     self.flames = [Flame(e) for e in elements]
 
+def load_config(options):
+  configfile = os.path.expanduser(options.configfile)
+  if not os.path.isfile(configfile):
+    return
+  config = options.config
+  parser = ConfigParser()
+  parser.read(configfile)
+
+  if config is not None:
+    hasconfig = parser.has_section(config)
+  else:
+    hasconfig = False
+
+  if parser.has_section(DEFAULTS):
+    for key in parser.options(DEFAULTS):
+      if hasconfig and parser.has_option(config, key):
+        continue
+      if getattr(options, key) is None:
+        setattr(options, key, parser.get(DEFAULTS, key))
+
+  if not hasconfig:
+    return
+  for key in parser.options(config):
+    if getattr(options, key) is None:
+      setattr(options, key, parser.get(config, key))
+
 def main():
   from optparse import OptionParser
   parser = OptionParser()
@@ -180,23 +208,31 @@ def main():
                     help="quality scale")
   parser.add_option("", "--ss", dest = "ss", type = "int",
                     help="size scale")
-  parser.add_option("-a", "--aspect", dest = "pixel_aspect", type = "int",
+  parser.add_option("", "--pixel_aspect", dest = "pixel_aspect", type = "int",
+                    metavar = "ASPECT",
                     help="pixel aspect ratio")
-  parser.add_option("-f", "--format", dest = "format",
+  parser.add_option("", "--format", dest = "format",
                     help="output image format")
   parser.add_option("", "--height", dest = "height", type = "int",
                     help="output height")
   parser.add_option("", "--width", dest = "width", type = "int",
                     help="output width")
-  parser.add_option("-r", "--keepratio", dest = "maintainratio",
+  parser.add_option("", "--keepratio", dest = "keepratio",
                     action = "store_true", default = False,
                     help="maintains output aspect ratio when providing both width and height")
   parser.add_option("", "--fix", dest = "fix", metavar = "<width|height>",
                     help="when resizing fix the image width or height and crop or expand the other")
+  parser.add_option("", "--config", dest = "config",
+                    help="configuration settings to use as defaults")
+  parser.add_option("", "--configfile", dest = "configfile",
+                    default = "~/.flam3.ini", metavar = "FILE",
+                    help="file to load configuration settings from, defaults to ~/.flam3.ini")
   parser.usage = "%prog [options] <file1> <file2> ... <filen>"
   (options, args) = parser.parse_args()
   if (len(args) == 0):
     parser.print_usage()
+
+  load_config(options)
 
   if options.format is None:
     options.format = "png"
