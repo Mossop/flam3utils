@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import subprocess, os, sys, re
-from datetime import datetime
+from datetime import datetime, timedelta
 from xml.dom.minidom import parse, parseString
 from ConfigParser import RawConfigParser as ConfigParser
 
@@ -30,10 +30,20 @@ def time_delta_str(delta):
 
   return result
 
+def time_delta_simple_str(delta):
+  result = ""
+  seconds = delta.seconds
+  hours = (delta.days * 24) + (seconds / 3600)
+  seconds -= hours * 3600
+  minutes = seconds / 60
+  seconds -= minutes * 60
+
+  return "%3d:%02d:%02d" % (hours, minutes, seconds)
+
 class ConsoleDisplay:
   filename = None
   starttime = None
-  progresswidth = 50
+  progresswidth = 40
 
   def startDisplay(self, filename):
     self.starttime = datetime.now()
@@ -46,6 +56,7 @@ class ConsoleDisplay:
   def redraw(self, process):
     progress = (100 * (process.strip - 1) / process.strips)
     progress += process.progress / process.strips
+
     sys.stdout.write("\r%s: %d/%d [" % (self.filename, process.strip, process.strips))
     count = int(self.progresswidth * progress / 100)
     for i in range(count):
@@ -54,11 +65,18 @@ class ConsoleDisplay:
       sys.stdout.write(" ")
     sys.stdout.write("] %5.1f%%" % process.progress)
 
+    if (progress > 0):
+      delta = datetime.now() - self.starttime
+      secs = (delta.days * 86400) + delta.seconds + (delta.microseconds / 1000000.0)
+      secs = ((100 - progress) * secs) / progress
+      eta = timedelta(0, secs)
+      sys.stdout.write(" %s" % time_delta_simple_str(eta))
+
   def endDisplay(self):
     delta = datetime.now() - self.starttime
     donetime = time_delta_str(delta)
     sys.stdout.write("\r%s: complete in %s" % (self.filename, donetime))
-    for i in range(len(donetime), self.progresswidth + 1):
+    for i in range(len(donetime), self.progresswidth + 11):
       sys.stdout.write(" ")
     sys.stdout.write("\n")
 
