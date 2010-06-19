@@ -58,6 +58,13 @@ class ConsoleDisplay:
       sys.stdout.write(" ")
     sys.stdout.write("]")
 
+  def showMessage(self, process, message):
+    sys.stdout.write("\r%s: %s" % (self.filename, message))
+    for i in range(len(message), self.progresswidth + 23):
+      sys.stdout.write(" ")
+    sys.stdout.write("\n")
+    self.redraw(process)
+
   def redraw(self, process):
     progress = (100 * (process.strip - 1) / process.strips)
     progress += process.progress / process.strips
@@ -161,7 +168,7 @@ class Flam3Renderer:
     if line.startswith("total time ="):
       return
 
-    print line
+    self.display.showMessage(self, line)
 
   def wait(self):
     line = ""
