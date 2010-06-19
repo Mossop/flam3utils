@@ -17,13 +17,18 @@ def time_delta_str(delta):
     return "1 %s " % noun
 
   result = ""
+  days = delta.days
   seconds = delta.seconds
+
+  if days == 0 and seconds == 0:
+    return "less than a second"
+
   hours = seconds / 3600
   seconds -= hours * 3600
   minutes = seconds / 60
   seconds -= minutes * 60
 
-  result += delta_part_str(delta.days, "day")
+  result += delta_part_str(days, "day")
   result += delta_part_str(hours, "hour")
   result += delta_part_str(minutes, "minute")
   result += delta_part_str(seconds, "second")
@@ -227,31 +232,46 @@ class Flam3File:
     elements = doc.getElementsByTagName("flame")
     self.flames = [Flame(e) for e in elements]
 
+def get_config_path(config):
+  if config is not None:
+    if os.path.isfile(config):
+      return config
+    return None
+  path = os.path.expanduser("~/.flam3.ini")
+  if os.path.isfile(path):
+    return path
+
+  path = os.path.join(os.path.abspath(os.path.dirname(sys.argv[0])), "flam3.ini")
+  if os.path.isfile(path):
+    return path
+
+  return None
+
 def load_config(options):
-  configfile = os.path.expanduser(options.configfile)
-  if not os.path.isfile(configfile):
-    return
+  def read_section_config(section):
+    for key in parser.options(section):
+      if getattr(options, key) is None:
+        setattr(options, key, parser.get(section, key))
+
+  configfile = get_config_path(options.configfile)
+  if configfile is None:
+    return False
+
   config = options.config
   parser = ConfigParser()
   parser.read(configfile)
 
   if config is not None:
-    hasconfig = parser.has_section(config)
-  else:
-    hasconfig = False
+    if not parser.has_section(config):
+      return False
 
   if parser.has_section(DEFAULTS):
-    for key in parser.options(DEFAULTS):
-      if hasconfig and parser.has_option(config, key):
-        continue
-      if getattr(options, key) is None:
-        setattr(options, key, parser.get(DEFAULTS, key))
+    read_section_config(DEFAULTS)
 
-  if not hasconfig:
-    return
-  for key in parser.options(config):
-    if getattr(options, key) is None:
-      setattr(options, key, parser.get(config, key))
+  if config is not None:
+    read_section_config(config)
+
+  return True
 
 def main():
   from optparse import OptionParser
@@ -287,15 +307,17 @@ def main():
                     help="when resizing fix the image width or height and crop or expand the other")
   parser.add_option("", "--config", dest = "config",
                     help="configuration settings to use as defaults")
-  parser.add_option("", "--configfile", dest = "configfile",
-                    default = "~/.flam3.ini", metavar = "FILE",
+  parser.add_option("", "--configfile", dest = "configfile", metavar = "FILE",
                     help="file to load configuration settings from, defaults to ~/.flam3.ini")
   parser.usage = "%prog [options] <file1> <file2> ... <filen>"
   (options, args) = parser.parse_args()
   if (len(args) == 0):
     parser.print_usage()
 
-  load_config(options)
+  if not load_config(options) and (options.config is not None or options.configfile is not None):
+    print("Unable to load settings")
+    parser.print_usage()
+    return
 
   if options.format is None:
     options.format = "png"
