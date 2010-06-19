@@ -95,9 +95,20 @@ class Flam3Renderer:
 
   def __init__(self, options):
     self.options = options
+
+    if os.name == "nt":
+      exename = "flam3-render.exe"
+    else:
+      exename = "flam3-render"
+
+    if options.flam3 is not None:
+      self.executable = os.path.join(options.flam3, exename)
     for path in os.environ["PATH"].split(os.pathsep):
-      if os.path.isfile(os.path.join(path, "flam3-render")):
-        self.executable = os.path.join(path, "flam3-render")
+      if os.path.isfile(os.path.join(path, exename)):
+        self.executable = os.path.join(path, exename)
+
+    if self.executable is None:
+      raise Exception, "Unable to find flam3-renderer"
 
   def open(self, outputfile, display):
     self.progress = 0
@@ -309,6 +320,8 @@ def main():
                     help="configuration settings to use as defaults")
   parser.add_option("", "--configfile", dest = "configfile", metavar = "FILE",
                     help="file to load configuration settings from, defaults to ~/.flam3.ini")
+  parser.add_option("", "--flam3", dest = "flam3", metavar = "FLAM3DIR",
+                    help="directory containing the flam3 executables")
   parser.usage = "%prog [options] <file1> <file2> ... <filen>"
   (options, args) = parser.parse_args()
   if (len(args) == 0):
