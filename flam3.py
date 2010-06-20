@@ -298,7 +298,7 @@ def main():
                     help="quality scale")
   parser.add_option("", "--ss", dest = "ss", type = "int",
                     help="size scale")
-  parser.add_option("", "--transparency", dest = "transparency",
+  parser.add_option("", "--transparent", dest = "transparency",
                     action = "store_const", const = 1,
                     help="make background transparent if the image format supports it")
   parser.add_option("", "--pixel_aspect", dest = "pixel_aspect", type = "int",
