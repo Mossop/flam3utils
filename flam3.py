@@ -5,7 +5,10 @@ from datetime import datetime, timedelta
 from xml.dom.minidom import parse, parseString
 from ConfigParser import RawConfigParser as ConfigParser
 
-OPTIONS = ["qs", "ss", "pixel_aspect", "format", "bpc", "bits", "transparency"]
+OPTIONS = [
+  "qs", "ss", "pixel_aspect", "format", "bpc", "bits", "transparency",
+  "nstrips"
+]
 DEFAULTS = "default"
 
 def time_delta_str(delta):
@@ -38,8 +41,9 @@ def time_delta_str(delta):
 def time_delta_simple_str(delta):
   result = ""
   seconds = delta.seconds
-  hours = (delta.days * 24) + (seconds / 3600)
+  hours = seconds / 3600
   seconds -= hours * 3600
+  hours += delta.days * 24
   minutes = seconds / 60
   seconds -= minutes * 60
 
@@ -49,6 +53,8 @@ class ConsoleDisplay:
   filename = None
   starttime = None
   progresswidth = 40
+  laststrip = None
+  lastprogress = None
 
   def startDisplay(self, filename):
     self.starttime = datetime.now()
@@ -66,6 +72,11 @@ class ConsoleDisplay:
     self.redraw(process)
 
   def redraw(self, process):
+    if process.strip == self.laststrip and process.progress == self.lastprogress:
+      return
+    self.laststrip = process.strip
+    self.lastprogress = process.progress
+
     progress = (100 * (process.strip - 1) / process.strips)
     progress += process.progress / process.strips
 
@@ -313,6 +324,8 @@ def main():
   parser.add_option("", "--format", dest = "format", type = "choice",
                     choices = ("png", "jpg", "ppm"),
                     help="output image format")
+  parser.add_option("", "--strips", dest = "nstrips", type = "int",
+                    help="render in multiple strips to save memory")
   parser.add_option("", "--height", dest = "height", type = "int",
                     help="output height")
   parser.add_option("", "--width", dest = "width", type = "int",
