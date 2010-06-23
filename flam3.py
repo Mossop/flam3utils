@@ -86,7 +86,7 @@ class ConsoleDisplay:
       sys.stdout.write("#")
     for i in range(count, self.progresswidth):
       sys.stdout.write(" ")
-    sys.stdout.write("] %5.1f%%" % process.progress)
+    sys.stdout.write("] %5.1f%%" % progress)
 
     if (progress > 0):
       delta = datetime.now() - self.starttime
