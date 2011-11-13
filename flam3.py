@@ -240,6 +240,9 @@ class Flame:
       self.element.setAttribute("size", "%d %d" % (newwidth, newheight))
       self.element.setAttribute("scale", "%f" % scale)
 
+    if options.quality is not None:
+      self.element.setAttribute("quality", options.quality)
+
     renderer = Flam3Renderer(options)
     display = ConsoleDisplay()
     display.startDisplay(filename)
@@ -306,9 +309,23 @@ def main():
   from optparse import OptionParser
   parser = OptionParser()
   parser.add_option("", "--qs", dest = "qs", type = "int",
-                    help="quality scale")
+                    help="quality scaling factor")
+  parser.add_option("", "--quality", dest = "quality", type = "int",
+                    help="quality, overrides qs")
+
   parser.add_option("", "--ss", dest = "ss", type = "int",
-                    help="size scale")
+                    help="size scaling factor")
+  parser.add_option("", "--height", dest = "height", type = "int",
+                    help="output height, overrides ss")
+  parser.add_option("", "--width", dest = "width", type = "int",
+                    help="output width, overrides ss")
+  parser.add_option("", "--keepratio", dest = "keepratio",
+                    action = "store_true",
+                    help="maintains output aspect ratio when providing both width and height")
+  parser.add_option("", "--fix", dest = "fix", type = "choice",
+                    choices = ("width", "height"), metavar = "<width|height>",
+                    help="when resizing fix the image width or height and crop or expand the other")
+
   parser.add_option("", "--transparent", dest = "transparency",
                     action = "store_const", const = 1,
                     help="make background transparent if the image format supports it")
@@ -326,22 +343,14 @@ def main():
                     help="output image format")
   parser.add_option("", "--strips", dest = "nstrips", type = "int",
                     help="render in multiple strips to save memory")
-  parser.add_option("", "--height", dest = "height", type = "int",
-                    help="output height")
-  parser.add_option("", "--width", dest = "width", type = "int",
-                    help="output width")
-  parser.add_option("", "--keepratio", dest = "keepratio",
-                    action = "store_true",
-                    help="maintains output aspect ratio when providing both width and height")
-  parser.add_option("", "--fix", dest = "fix", type = "choice",
-                    choices = ("width", "height"), metavar = "<width|height>",
-                    help="when resizing fix the image width or height and crop or expand the other")
+
   parser.add_option("", "--config", dest = "config",
                     help="configuration settings to use as defaults")
   parser.add_option("", "--configfile", dest = "configfile", metavar = "FILE",
                     help="file to load configuration settings from, defaults to ~/.flam3.ini")
   parser.add_option("", "--flam3", dest = "flam3", metavar = "FLAM3DIR",
                     help="directory containing the flam3 executables")
+
   parser.usage = "%prog [options] <file1> <file2> ... <filen>"
   (options, args) = parser.parse_args()
   if (len(args) == 0):
@@ -357,6 +366,9 @@ def main():
 
   if options.height is not None or options.width is not None:
     options.ss = None
+
+  if options.quality is not None:
+    options.qs = None
 
   flamefiles = []
   for file in args:
