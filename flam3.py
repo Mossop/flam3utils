@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 import subprocess, os, sys, re
 from datetime import datetime, timedelta
