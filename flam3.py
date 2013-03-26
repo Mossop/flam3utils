@@ -241,7 +241,7 @@ class Flame:
       self.element.setAttribute("scale", "%f" % scale)
 
     if options.quality is not None:
-      self.element.setAttribute("quality", options.quality)
+      self.element.setAttribute("quality", "%d" % options.quality)
 
     renderer = Flam3Renderer(options)
     display = ConsoleDisplay()
